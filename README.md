@@ -1,4 +1,4 @@
-# Meu Primeiro Projeto C# - API Web
+# Meu Primeiro Projeto C# com AngularJS
 
 Este é um projeto de API Web desenvolvido em C# usando ASP.NET Core. Este README explica a estrutura e funcionamento do projeto de forma didática.
 
