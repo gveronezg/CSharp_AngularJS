@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html ng-app="app"> <!-- Indica que este HTML usa AngularJS para funcionar -->
+<head>
+    <meta charset="UTF-8"> <!-- Indica que o documento usa o conjunto de caracteres UTF-8 -->
+    <title>Usuários App</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script> <!-- Carrega a biblioteca para que funcione com o AngularJS -->
+</head>
+<body ng-controller="UsuariosController"> <!-- Define que esta área será controlada pelo controlador UsuariosController -->
+
+    <h1>Cadastrar Novo Usuário</h1>
+
+    <!--
+        ng-submit: Quando o formulário for enviado, chama a função adicionarUsuario()
+        ng-model: Liga os campos do formulário a variáveis no AngularJS
+    -->
+    <form ng-submit="adicionarUsuario()">
+        <input type="text" ng-model="novoUsuario.nome" placeholder="Nome" required>
+        <input type="email" ng-model="novoUsuario.email" placeholder="Email" required>
+        <button type="submit">Cadastrar</button>
+    </form>
+
+    <!--
+        ng-repeat: Repete o elemento para cada usuário na lista
+        {{u.nome}}: Mostra o valor da propriedade nome do usuário
+        {{u.email}}: Mostra o valor da propriedade email do usuário
+    -->
+    <h2>Usuários já Cadastrados:</h2>
+    <ul>
+        <li ng-repeat="u in usuarios">
+            {{u.id}} - {{u.nome}} ({{u.email}})
+            <button ng-click="editarUsuario(u)">Editar</button>
+            <button ng-click="excluirUsuario(u)">Excluir</button>
+        </li>
+    </ul>
+
+    <h2>Editando Usuário</h2>
+    <form ng-submit="atualizarUsuario()">
+        <input type="hidden" ng-model="usuarioEditando.id">
+        <input type="text" ng-model="usuarioEditando.nome" placeholder="Nome" required>
+        <input type="email" ng-model="usuarioEditando.email" placeholder="Email" required>
+        <button type="submit">Atualizar</button>
+        <button type="button" ng-click="cancelarEdicao()">Cancelar</button>
+    </form>
+
+    <script>
+        /*
+            Cria um módulo Angular chamado 'app'
+            Define um controlador chamado 'UsuariosController'
+            $scope: Gerencia as variáveis da página
+            $http: Faz requisições HTTP (comunicação com o backend)
+        */
+        angular.module('app', [])
+            .controller('UsuariosController', function($scope, $http) {
+
+                const apiUrl = 'http://localhost:5292/usuarios'; // Define o endereço da API
+                $scope.usuarios = []; // Inicializa o array de usuários
+
+                function carregarUsuarios() { // Faz uma requisição GET para a API, quando recebe os dados, atualiza a lista de usuários
+                    $http.get(apiUrl).then(function(response) {
+                        $scope.usuarios = response.data;
+                    });
+                }
+
+                /*
+                    Envia um novo usuário para a API
+                    Limpa o formulário após o envio
+                    Recarrega a lista de usuários
+                */
+                $scope.adicionarUsuario = function() {
+                    $http.post(apiUrl, $scope.novoUsuario).then(function() {
+                        $scope.novoUsuario = {}; 
+                        carregarUsuarios();
+                    });
+                };
+
+                $scope.usuarioEditando = {};
+
+                $scope.editarUsuario = function(usuario) {
+                    $scope.usuarioEditando = angular.copy(usuario);
+                };
+
+                $scope.cancelarEdicao = function() {
+                    $scope.usuarioEditando = {};
+                };
+
+                $scope.atualizarUsuario = function() {
+                    $http.put(apiUrl + '/' + $scope.usuarioEditando.id, $scope.usuarioEditando).then(function() {
+                        carregarUsuarios();
+                        $scope.cancelarEdicao();
+                    });
+                };
+
+                $scope.excluirUsuario = function(usuario) {
+                    if (confirm('Tem certeza que deseja excluir este usuário?')) {
+                        $http.delete(apiUrl + '/' + usuario.id).then(function() {
+                            carregarUsuarios();
+                        });
+                    }
+                };
+                carregarUsuarios();
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+bin/
+obj/
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+.vs/
+*.user
+*.suo
