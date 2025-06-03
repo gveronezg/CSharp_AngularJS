@@ -1,5 +1,6 @@
 using Microsoft.OpenApi.Models; // Esta linha importa as classes necessárias para trabalhar com o Swagger (documentação da API)
 using MeuPrimeiroProjetoCSharp.Data; // Importa o contexto do banco de dados que criamos anteriormente
+using Microsoft.EntityFrameworkCore; // Importa o Entity Framework Core, que é usado para interagir com o banco de dados
 
 /*
     var: Palavra-chave que deixa o C# adivinhar o tipo da variável

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using MeuPrimeiroProjetoCSharp.Data;
 using MeuPrimeiroProjetoCSharp.Models;
-using System.Collections.Generic;
-using System.Linq; // Necessário para usar IEnumerable
+using Microsoft.EntityFrameworkCore;
 
 namespace MeuPrimeiroProjetoCSharp.Controllers
 {
@@ -9,46 +9,44 @@ namespace MeuPrimeiroProjetoCSharp.Controllers
     [Route("[controller]")]
     public class UsuariosController : ControllerBase
     {
-        private static List<Usuario> usuarios = new List<Usuario>();
+        private readonly MeuDbContext _context;
 
-        [HttpGet]
-        public IEnumerable<Usuario> Get()
+        public UsuariosController(MeuDbContext context)
         {
-            return usuarios;
+            _context = context;
         }
 
-        [HttpPost] 
-        public IActionResult Post(Usuario usuario)
+        [HttpGet]
+        public async Task<IEnumerable<Usuario>> Get()
         {
-            usuario.Id = usuarios.Count + 1;
-            usuarios.Add(usuario);
+            return await _context.Usuarios.ToListAsync();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post(Usuario usuario)
+        {
+            _context.Usuarios.Add(usuario);
+            await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(Get), new { id = usuario.Id }, usuario);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, Usuario usuarioAtualizado)
+        public async Task<IActionResult> Put(int id, Usuario usuario)
         {
-            var usuario = usuarios.FirstOrDefault(u => u.Id == id);
-            if (usuario == null)
-            {
-                return NotFound();
-            }
-
-            usuario.Nome = usuarioAtualizado.Nome;
-            usuario.Email = usuarioAtualizado.Email;
+            if (id != usuario.Id) return BadRequest();
+            _context.Entry(usuario).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var usuario = usuarios.FirstOrDefault(u => u.Id == id);
-            if (usuario == null)
-            {
-                return NotFound();
-            }
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null) return NotFound();
 
-            usuarios.Remove(usuario);
+            _context.Usuarios.Remove(usuario);
+            await _context.SaveChangesAsync();
             return NoContent();
         }
     }
