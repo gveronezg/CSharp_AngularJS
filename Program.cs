@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Models; // Esta linha importa as classes necessárias para trabalhar com o Swagger (documentação da API)
+using MeuPrimeiroProjetoCSharp.Data; // Importa o contexto do banco de dados que criamos anteriormente
 
 /*
     var: Palavra-chave que deixa o C# adivinhar o tipo da variável
@@ -6,6 +7,9 @@ using Microsoft.OpenApi.Models; // Esta linha importa as classes necessárias pa
     args: São argumentos passados para a aplicação quando ela inicia
 */
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<MeuDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Adiciona o DbContext
 
 builder.Services.AddControllers(); // Adiciona suporte a Controllers
 
