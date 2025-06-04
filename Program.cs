@@ -1,6 +1,7 @@
 using Microsoft.OpenApi.Models; // Esta linha importa as classes necessárias para trabalhar com o Swagger (documentação da API)
 using MeuPrimeiroProjetoCSharp.Data; // Importa o contexto do banco de dados que criamos anteriormente
 using Microsoft.EntityFrameworkCore; // Importa o Entity Framework Core, que é usado para interagir com o banco de dados
+using MeuPrimeiroProjetoCSharp.Services; // Importa os serviços que criamos para manipular usuários
 
 using Microsoft.Extensions.FileProviders;
 using System.IO;
@@ -16,6 +17,7 @@ builder.Services.AddDbContext<MeuDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Adiciona o DbContext
 
 builder.Services.AddControllers(); // Adiciona suporte a Controllers
+builder.Services.AddScoped<IUsuarioService, UsuarioService>(); // Registra o serviço de usuários para injeção de dependência
 
 builder.Services.AddCors(); // Adiciona suporte a CORS
 
