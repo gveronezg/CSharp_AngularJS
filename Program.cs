@@ -2,6 +2,9 @@ using Microsoft.OpenApi.Models; // Esta linha importa as classes necessárias pa
 using MeuPrimeiroProjetoCSharp.Data; // Importa o contexto do banco de dados que criamos anteriormente
 using Microsoft.EntityFrameworkCore; // Importa o Entity Framework Core, que é usado para interagir com o banco de dados
 
+using Microsoft.Extensions.FileProviders;
+using System.IO;
+
 /*
     var: Palavra-chave que deixa o C# adivinhar o tipo da variável
     WebApplication.CreateBuilder: Cria um construtor para nossa aplicação web
@@ -38,6 +41,16 @@ app.UseCors(policy => policy
     .AllowAnyHeader());
 
 app.UseHttpsRedirection(); // Redireciona todas as requisições HTTP para HTTPS (mais seguro)
+
+app.MapGet("/", () => Results.Redirect("/index.html")); // Esse código redireciona qualquer requisição para a raiz do servidor para a página index.html.
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "Templates")),
+    RequestPath = ""
+});
+
 app.UseAuthorization(); // Ativa o middleware de autorização
 
 app.MapControllers(); // Mapeia todos os endpoints de Controllers automaticamente
@@ -70,6 +83,9 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+// Inicia o navegador automaticamente com a URL do Swagger
+System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd", $"/c start http://localhost:5292") { CreateNoWindow = true });
 
 app.Run(); // Inicia a aplicação fezendo-a começar a escutar por requisições
 
