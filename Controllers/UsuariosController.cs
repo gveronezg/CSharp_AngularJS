@@ -1,6 +1,8 @@
 using MeuPrimeiroProjetoCSharp.Models;
 using MeuPrimeiroProjetoCSharp.Services;
 using Microsoft.AspNetCore.Mvc;
+using AutoMapper;
+using MeuPrimeiroProjetoCSharp.Dtos;
 
 namespace MeuPrimeiroProjetoCSharp.Controllers
 {
@@ -9,39 +11,50 @@ namespace MeuPrimeiroProjetoCSharp.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly IUsuarioService _usuarioService;
+        private readonly IMapper _mapper;
 
-        public UsuariosController(IUsuarioService usuarioService)
+        public UsuariosController(IUsuarioService usuarioService, IMapper mapper)
         {
             _usuarioService = usuarioService;
+            _mapper = mapper;
         }
 
+
         [HttpGet]
-        public async Task<IEnumerable<Usuario>> Get()
+        public async Task<IEnumerable<UsuarioDto>> Get()
         {
-            return await _usuarioService.GetAll();
+            var usuarios = await _usuarioService.GetAll();
+            return _mapper.Map<IEnumerable<UsuarioDto>>(usuarios);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> Get(int id)
+        public async Task<ActionResult<UsuarioDto>> Get(int id)
         {
             var usuario = await _usuarioService.GetById(id);
             if (usuario == null) return NotFound();
-            return usuario;
+            return _mapper.Map<UsuarioDto>(usuario);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post(Usuario usuario)
+        public async Task<IActionResult> Post(UsuarioCreateDto usuarioDto)
         {
+            var usuario = _mapper.Map<Usuario>(usuarioDto);
             var created = await _usuarioService.Create(usuario);
-            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+            var usuarioRetorno = _mapper.Map<UsuarioDto>(created);
+
+            return CreatedAtAction(nameof(Get), new { id = usuarioRetorno.Id }, usuarioRetorno);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, Usuario usuario)
+        public async Task<IActionResult> Put(int id, UsuarioCreateDto usuarioDto)
         {
+            var usuario = _mapper.Map<Usuario>(usuarioDto);
             var updated = await _usuarioService.Update(id, usuario);
+
             if (updated == null) return NotFound();
-            return Ok(updated);
+
+            var usuarioRetorno = _mapper.Map<UsuarioDto>(updated);
+            return Ok(usuarioRetorno);
         }
 
         [HttpDelete("{id}")]

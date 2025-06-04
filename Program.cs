@@ -17,9 +17,10 @@ builder.Services.AddDbContext<MeuDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Adiciona o DbContext
 
 builder.Services.AddControllers(); // Adiciona suporte a Controllers
-builder.Services.AddScoped<IUsuarioService, UsuarioService>(); // Registra o serviço de usuários para injeção de dependência
 
 builder.Services.AddCors(); // Adiciona suporte a CORS
+builder.Services.AddScoped<IUsuarioService, UsuarioService>(); // Registra o serviço de usuários para injeção de dependência
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies()); // Configura o AutoMapper para mapear objetos entre DTOs e modelos
 
 builder.Services.AddEndpointsApiExplorer(); // Adiciona suporte a explorar endpoints (usado pelo Swagger)
 builder.Services.AddSwaggerGen(); // Configura o Swagger para gerar documentação da API
