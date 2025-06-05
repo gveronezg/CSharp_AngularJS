@@ -2,6 +2,8 @@ using Microsoft.OpenApi.Models; // Esta linha importa as classes necessárias pa
 using MeuPrimeiroProjetoCSharp.Data; // Importa o contexto do banco de dados que criamos anteriormente
 using Microsoft.EntityFrameworkCore; // Importa o Entity Framework Core, que é usado para interagir com o banco de dados
 using MeuPrimeiroProjetoCSharp.Services; // Importa os serviços que criamos para manipular usuários
+using Microsoft.AspNetCore.Authentication.JwtBearer; // Importa classes necessárias para autenticação JWT (JSON Web Tokens)
+using Microsoft.IdentityModel.Tokens; // Também para TokenValidationParameters
 
 using Microsoft.Extensions.FileProviders;
 using System.IO;
@@ -13,19 +15,42 @@ using System.IO;
 */
 var builder = WebApplication.CreateBuilder(args);
 
+// Configura o DbContext para usar PostgreSQL
 builder.Services.AddDbContext<MeuDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Adiciona o DbContext
 
-builder.Services.AddControllers(); // Adiciona suporte a Controllers
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = "https://jhqlfzrqcbhjguzabfna.supabase.co";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "https://jhqlfzrqcbhjguzabfna.supabase.co",
+            ValidateAudience = true,
+            ValidAudience = "authenticated",  // ou "anon", se quiser
+            ValidateLifetime = true,  // Garantir que token não esteja expirado
+        };
+        options.RequireHttpsMetadata = true; // O Supabase exige HTTPS
+    });
 
+builder.Services.AddControllers(); // Adiciona suporte a Controllers
 builder.Services.AddCors(); // Adiciona suporte a CORS
 builder.Services.AddScoped<IUsuarioService, UsuarioService>(); // Registra o serviço de usuários para injeção de dependência
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies()); // Configura o AutoMapper para mapear objetos entre DTOs e modelos
-
 builder.Services.AddEndpointsApiExplorer(); // Adiciona suporte a explorar endpoints (usado pelo Swagger)
 builder.Services.AddSwaggerGen(); // Configura o Swagger para gerar documentação da API
 
 var app = builder.Build(); // Cria a aplicação web com todas as configurações que definimos
+
+// No pipeline
+app.UseCors(policy => policy
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 /*
     IsDevelopment(): Verifica se estamos em ambiente de desenvolvimento
@@ -38,11 +63,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors(policy => policy
-    .AllowAnyOrigin()
-    .AllowAnyMethod()
-    .AllowAnyHeader());
-
 app.UseHttpsRedirection(); // Redireciona todas as requisições HTTP para HTTPS (mais seguro)
 
 app.MapGet("/", () => Results.Redirect("/index.html")); // Esse código redireciona qualquer requisição para a raiz do servidor para a página index.html.
@@ -53,8 +73,6 @@ app.UseStaticFiles(new StaticFileOptions
         Path.Combine(builder.Environment.ContentRootPath, "Templates")),
     RequestPath = ""
 });
-
-app.UseAuthorization(); // Ativa o middleware de autorização
 
 app.MapControllers(); // Mapeia todos os endpoints de Controllers automaticamente
 

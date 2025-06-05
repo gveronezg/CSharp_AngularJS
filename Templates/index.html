@@ -1,29 +1,37 @@
 <!DOCTYPE html>
-<html ng-app="app"> <!-- Indica que este HTML usa AngularJS para funcionar -->
+<html ng-app="app">
 <head>
-    <meta charset="UTF-8"> <!-- Indica que o documento usa o conjunto de caracteres UTF-8 -->
+    <meta charset="UTF-8">
     <title>Usuários App</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script> <!-- Carrega a biblioteca para que funcione com o AngularJS -->
+
+    <!-- ✅ Carrega primeiro a biblioteca Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+
+    <!-- ✅ Depois a biblioteca AngularJS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
 </head>
-<body ng-controller="UsuariosController"> <!-- Define que esta área será controlada pelo controlador UsuariosController -->
+
+<body ng-controller="UsuariosController">
+
+    <p>Status: {{status}}</p>
+    <p ng-if="token">Token: {{token}}</p>
+
+    <h2>Login</h2>
+    <form ng-submit="login()">
+        <input type="email" ng-model="loginData.email" placeholder="Email" required>
+        <input type="password" ng-model="loginData.password" placeholder="Senha" required>
+        <button type="submit">Entrar</button>
+    </form>
+
+    <button ng-click="logout()" ng-if="status === 'Logado'">Sair</button>
 
     <h1>Cadastrar Novo Usuário</h1>
-
-    <!--
-        ng-submit: Quando o formulário for enviado, chama a função adicionarUsuario()
-        ng-model: Liga os campos do formulário a variáveis no AngularJS
-    -->
     <form ng-submit="adicionarUsuario()">
         <input type="text" ng-model="novoUsuario.nome" placeholder="Nome" required>
         <input type="email" ng-model="novoUsuario.email" placeholder="Email" required>
         <button type="submit">Cadastrar</button>
     </form>
 
-    <!--
-        ng-repeat: Repete o elemento para cada usuário na lista
-        {{u.nome}}: Mostra o valor da propriedade nome do usuário
-        {{u.email}}: Mostra o valor da propriedade email do usuário
-    -->
     <h2>Usuários já Cadastrados:</h2>
     <ul>
         <li ng-repeat="u in usuarios">
@@ -43,37 +51,97 @@
     </form>
 
     <script>
-        /*
-            Cria um módulo Angular chamado 'app'
-            Define um controlador chamado 'UsuariosController'
-            $scope: Gerencia as variáveis da página
-            $http: Faz requisições HTTP (comunicação com o backend)
-        */
+        // ✅ 1. Primeiro criamos a instância do cliente Supabase
+        const supabaseUrl = 'https://jhqlfzrqcbhjguzabfna.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...'; // ⚠️ mantenha seguro!
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // ✅ 2. Agora criamos o módulo AngularJS
         angular.module('app', [])
             .controller('UsuariosController', function($scope, $http) {
 
-                const apiUrl = 'http://localhost:5292/usuarios'; // Define o endereço da API
-                $scope.usuarios = []; // Inicializa o array de usuários
+                // ✅ Variáveis de controle de estado
+                $scope.status = 'Deslogado';
+                $scope.token = null;
 
-                function carregarUsuarios() { // Faz uma requisição GET para a API, quando recebe os dados, atualiza a lista de usuários
-                    $http.get(apiUrl).then(function(response) {
-                        $scope.usuarios = response.data;
-                    });
+                $scope.loginData = {};
+                $scope.usuarios = [];
+                $scope.novoUsuario = {};
+                $scope.usuarioEditando = {};
+
+                const apiUrl = 'http://localhost:5292/usuarios';
+
+                // ✅ Configura o cabeçalho Authorization
+                function getAuthConfig() {
+                    return {
+                        headers: {
+                            'Authorization': 'Bearer ' + $scope.token
+                        }
+                    };
                 }
 
-                /*
-                    Envia um novo usuário para a API
-                    Limpa o formulário após o envio
-                    Recarrega a lista de usuários
-                */
+                // ✅ Autenticação
+                $scope.login = async function() {
+                    console.log('Tentando login com:', $scope.loginData);
+
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: $scope.loginData.email,
+                        password: $scope.loginData.password
+                    });
+
+                    console.log('Resultado login:', data, error);
+
+                    if (error) {
+                        alert('Erro ao logar: ' + error.message);
+                    } else {
+                        $scope.token = data.session.access_token;
+                        $scope.status = 'Logado';
+                        $scope.$apply();
+                        carregarUsuarios();
+                    }
+                };
+
+                $scope.logout = async function() {
+                    await supabase.auth.signOut();
+                    $scope.token = null;
+                    $scope.status = 'Deslogado';
+                    $scope.usuarios = [];
+                    $scope.$apply();
+                };
+
+                async function verificarSessao() {
+                    const { data: { session }, error } = await supabase.auth.getSession();
+                    console.log('Verificando sessão:', session, error);
+
+                    if (session) {
+                        $scope.token = session.access_token;
+                        $scope.status = 'Logado';
+                        carregarUsuarios();
+                    } else {
+                        $scope.status = 'Deslogado';
+                    }
+                    $scope.$apply();
+                }
+
+                function carregarUsuarios() {
+                    if ($scope.token) {
+                        console.log('Carregando usuários com token:', $scope.token);
+
+                        $http.get(apiUrl, getAuthConfig()).then(function(response) {
+                            console.log('Usuários carregados:', response.data);
+                            $scope.usuarios = response.data;
+                        }, function(err) {
+                            console.error('Erro ao carregar usuários:', err);
+                        });
+                    }
+                }
+
                 $scope.adicionarUsuario = function() {
-                    $http.post(apiUrl, $scope.novoUsuario).then(function() {
-                        $scope.novoUsuario = {}; 
+                    $http.post(apiUrl, $scope.novoUsuario, getAuthConfig()).then(function() {
+                        $scope.novoUsuario = {};
                         carregarUsuarios();
                     });
                 };
-
-                $scope.usuarioEditando = {};
 
                 $scope.editarUsuario = function(usuario) {
                     $scope.usuarioEditando = angular.copy(usuario);
@@ -84,7 +152,7 @@
                 };
 
                 $scope.atualizarUsuario = function() {
-                    $http.put(apiUrl + '/' + $scope.usuarioEditando.id, $scope.usuarioEditando).then(function() {
+                    $http.put(apiUrl + '/' + $scope.usuarioEditando.id, $scope.usuarioEditando, getAuthConfig()).then(function() {
                         carregarUsuarios();
                         $scope.cancelarEdicao();
                     });
@@ -92,12 +160,13 @@
 
                 $scope.excluirUsuario = function(usuario) {
                     if (confirm('Tem certeza que deseja excluir este usuário?')) {
-                        $http.delete(apiUrl + '/' + usuario.id).then(function() {
+                        $http.delete(apiUrl + '/' + usuario.id, getAuthConfig()).then(function() {
                             carregarUsuarios();
                         });
                     }
                 };
-                carregarUsuarios();
+
+                verificarSessao();
             });
     </script>
 </body>

@@ -3,9 +3,11 @@ using MeuPrimeiroProjetoCSharp.Services;
 using Microsoft.AspNetCore.Mvc;
 using AutoMapper;
 using MeuPrimeiroProjetoCSharp.Dtos;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MeuPrimeiroProjetoCSharp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class UsuariosController : ControllerBase
