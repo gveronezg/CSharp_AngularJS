@@ -1,66 +1,72 @@
 <!DOCTYPE html>
-<html ng-app="app">
+<html>
+
 <head>
     <meta charset="UTF-8">
     <title>Usuários App</title>
 
-    <!-- ✅ Carrega primeiro a biblioteca Supabase -->
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 
-    <!-- ✅ Depois a biblioteca AngularJS -->
+    <!-- AngularJS -->
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
 </head>
 
-<body ng-controller="UsuariosController">
+<body ng-app="app">
 
-    <p>Status: {{status}}</p>
-    <p ng-if="token">Token: {{token}}</p>
+    <div ng-controller="UsuariosController">
 
-    <h2>Login</h2>
-    <form ng-submit="login()">
-        <input type="email" ng-model="loginData.email" placeholder="Email" required>
-        <input type="password" ng-model="loginData.password" placeholder="Senha" required>
-        <button type="submit">Entrar</button>
-    </form>
+        <p>Status: {{status}}</p>
+        <p ng-if="token">Token: {{token}}</p>
 
-    <button ng-click="logout()" ng-if="status === 'Logado'">Sair</button>
+        <h2>Login</h2>
+        <form ng-submit="login()">
+            <input type="email" ng-model="loginData.email" placeholder="Email" required>
+            <input type="password" ng-model="loginData.password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
 
-    <h1>Cadastrar Novo Usuário</h1>
-    <form ng-submit="adicionarUsuario()">
-        <input type="text" ng-model="novoUsuario.nome" placeholder="Nome" required>
-        <input type="email" ng-model="novoUsuario.email" placeholder="Email" required>
-        <button type="submit">Cadastrar</button>
-    </form>
+        <button ng-click="logout()" ng-if="status === 'Logado'">Sair</button>
 
-    <h2>Usuários já Cadastrados:</h2>
-    <ul>
-        <li ng-repeat="u in usuarios">
-            {{u.id}} - {{u.nome}} ({{u.email}})
-            <button ng-click="editarUsuario(u)">Editar</button>
-            <button ng-click="excluirUsuario(u)">Excluir</button>
-        </li>
-    </ul>
+        <h1>Cadastrar Novo Usuário</h1>
+        <form ng-submit="adicionarUsuario()">
+            <input type="text" ng-model="novoUsuario.nome" placeholder="Nome" required>
+            <input type="email" ng-model="novoUsuario.email" placeholder="Email" required>
+            <button type="submit">Cadastrar</button>
+        </form>
 
-    <h2>Editando Usuário</h2>
-    <form ng-submit="atualizarUsuario()">
-        <input type="hidden" ng-model="usuarioEditando.id">
-        <input type="text" ng-model="usuarioEditando.nome" placeholder="Nome" required>
-        <input type="email" ng-model="usuarioEditando.email" placeholder="Email" required>
-        <button type="submit">Atualizar</button>
-        <button type="button" ng-click="cancelarEdicao()">Cancelar</button>
-    </form>
+        <h2>Usuários já Cadastrados:</h2>
+        <ul>
+            <li ng-repeat="u in usuarios">
+                {{u.id}} - {{u.nome}} ({{u.email}})
+                <button ng-click="editarUsuario(u)">Editar</button>
+                <button ng-click="excluirUsuario(u)">Excluir</button>
+            </li>
+        </ul>
+
+        <h2>Editando Usuário</h2>
+        <form ng-submit="atualizarUsuario()">
+            <input type="hidden" ng-model="usuarioEditando.id">
+            <input type="text" ng-model="usuarioEditando.nome" placeholder="Nome" required>
+            <input type="email" ng-model="usuarioEditando.email" placeholder="Email" required>
+            <button type="submit">Atualizar</button>
+            <button type="button" ng-click="cancelarEdicao()">Cancelar</button>
+        </form>
+
+    </div>
 
     <script>
-        // ✅ 1. Primeiro criamos a instância do cliente Supabase
+        // Supabase Client
+        const { createClient } = supabase;
+
         const supabaseUrl = 'https://jhqlfzrqcbhjguzabfna.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...'; // ⚠️ mantenha seguro!
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpocWxmenJxY2Joamd1emFiZm5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5Njk2OTksImV4cCI6MjA2NDU0NTY5OX0.xaOlSLz97u0ZREHis7u2O_7jJPz3feUM5hBi3n4qL2Y';
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-        // ✅ 2. Agora criamos o módulo AngularJS
+        // AngularJS Module and Controller
         angular.module('app', [])
-            .controller('UsuariosController', function($scope, $http) {
+            .controller('UsuariosController', function ($scope, $http) {
 
-                // ✅ Variáveis de controle de estado
                 $scope.status = 'Deslogado';
                 $scope.token = null;
 
@@ -71,28 +77,20 @@
 
                 const apiUrl = 'http://localhost:5292/usuarios';
 
-                // ✅ Configura o cabeçalho Authorization
                 function getAuthConfig() {
                     return {
-                        headers: {
-                            'Authorization': 'Bearer ' + $scope.token
-                        }
+                        headers: { 'Authorization': 'Bearer ' + $scope.token }
                     };
                 }
 
-                // ✅ Autenticação
-                $scope.login = async function() {
-                    console.log('Tentando login com:', $scope.loginData);
-
-                    const { data, error } = await supabase.auth.signInWithPassword({
+                $scope.login = async function () {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
                         email: $scope.loginData.email,
                         password: $scope.loginData.password
                     });
 
-                    console.log('Resultado login:', data, error);
-
                     if (error) {
-                        alert('Erro ao logar: ' + error.message);
+                        alert('Erro: ' + error.message);
                     } else {
                         $scope.token = data.session.access_token;
                         $scope.status = 'Logado';
@@ -101,8 +99,8 @@
                     }
                 };
 
-                $scope.logout = async function() {
-                    await supabase.auth.signOut();
+                $scope.logout = async function () {
+                    await supabaseClient.auth.signOut();
                     $scope.token = null;
                     $scope.status = 'Deslogado';
                     $scope.usuarios = [];
@@ -110,8 +108,7 @@
                 };
 
                 async function verificarSessao() {
-                    const { data: { session }, error } = await supabase.auth.getSession();
-                    console.log('Verificando sessão:', session, error);
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
 
                     if (session) {
                         $scope.token = session.access_token;
@@ -125,42 +122,37 @@
 
                 function carregarUsuarios() {
                     if ($scope.token) {
-                        console.log('Carregando usuários com token:', $scope.token);
-
-                        $http.get(apiUrl, getAuthConfig()).then(function(response) {
-                            console.log('Usuários carregados:', response.data);
+                        $http.get(apiUrl, getAuthConfig()).then(function (response) {
                             $scope.usuarios = response.data;
-                        }, function(err) {
-                            console.error('Erro ao carregar usuários:', err);
                         });
                     }
                 }
 
-                $scope.adicionarUsuario = function() {
-                    $http.post(apiUrl, $scope.novoUsuario, getAuthConfig()).then(function() {
+                $scope.adicionarUsuario = function () {
+                    $http.post(apiUrl, $scope.novoUsuario, getAuthConfig()).then(function () {
                         $scope.novoUsuario = {};
                         carregarUsuarios();
                     });
                 };
 
-                $scope.editarUsuario = function(usuario) {
+                $scope.editarUsuario = function (usuario) {
                     $scope.usuarioEditando = angular.copy(usuario);
                 };
 
-                $scope.cancelarEdicao = function() {
+                $scope.cancelarEdicao = function () {
                     $scope.usuarioEditando = {};
                 };
 
-                $scope.atualizarUsuario = function() {
-                    $http.put(apiUrl + '/' + $scope.usuarioEditando.id, $scope.usuarioEditando, getAuthConfig()).then(function() {
+                $scope.atualizarUsuario = function () {
+                    $http.put(apiUrl + '/' + $scope.usuarioEditando.id, $scope.usuarioEditando, getAuthConfig()).then(function () {
                         carregarUsuarios();
                         $scope.cancelarEdicao();
                     });
                 };
 
-                $scope.excluirUsuario = function(usuario) {
-                    if (confirm('Tem certeza que deseja excluir este usuário?')) {
-                        $http.delete(apiUrl + '/' + usuario.id, getAuthConfig()).then(function() {
+                $scope.excluirUsuario = function (usuario) {
+                    if (confirm('Confirma exclusão?')) {
+                        $http.delete(apiUrl + '/' + usuario.id, getAuthConfig()).then(function () {
                             carregarUsuarios();
                         });
                     }
@@ -169,5 +161,7 @@
                 verificarSessao();
             });
     </script>
+
 </body>
+
 </html>
