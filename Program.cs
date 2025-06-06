@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore; // Importa o Entity Framework Core, que é 
 using MeuPrimeiroProjetoCSharp.Services; // Importa os serviços que criamos para manipular usuários
 using Microsoft.AspNetCore.Authentication.JwtBearer; // Importa classes necessárias para autenticação JWT (JSON Web Tokens)
 using Microsoft.IdentityModel.Tokens; // Também para TokenValidationParameters
-
 using Microsoft.Extensions.FileProviders;
 using System.IO;
+
+// URL do JWKS do Supabase
+string supabaseJWKS = "uefXCXju5c2iyInR10MjbtuoUX4+pc3HU+A2HD3SG+8VAOPLfO9LXMDJm8uFStNECPkyDJGw1RcAgZ5PP7xtZQ==";
 
 /*
     var: Palavra-chave que deixa o C# adivinhar o tipo da variável
@@ -15,10 +17,11 @@ using System.IO;
 */
 var builder = WebApplication.CreateBuilder(args);
 
-// Configura o DbContext para usar PostgreSQL
-builder.Services.AddDbContext<MeuDbContext>(options =>
+// -------------------- CONFIGURAÇÕES DE BANCO DE DADOS --------------------
+builder.Services.AddDbContext<MeuDbContext>(options => // Configura o DbContext para usar PostgreSQL
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Adiciona o DbContext
 
+// -------------------- CONFIGURAÇÃO DE AUTENTICAÇÃO JWT via Supabase --------------------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -30,10 +33,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidAudience = "authenticated",  // ou "anon", se quiser
             ValidateLifetime = true,  // Garantir que token não esteja expirado
+            ValidateIssuerSigningKey = true // Valida a chave pública do JWKS
         };
         options.RequireHttpsMetadata = true; // O Supabase exige HTTPS
     });
 
+// -------------------- REGISTRO DE SERVIÇOS E DEPENDÊNCIAS --------------------
 builder.Services.AddControllers(); // Adiciona suporte a Controllers
 builder.Services.AddCors(); // Adiciona suporte a CORS
 builder.Services.AddScoped<IUsuarioService, UsuarioService>(); // Registra o serviço de usuários para injeção de dependência
@@ -41,16 +46,19 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies()); // Conf
 builder.Services.AddEndpointsApiExplorer(); // Adiciona suporte a explorar endpoints (usado pelo Swagger)
 builder.Services.AddSwaggerGen(); // Configura o Swagger para gerar documentação da API
 
+// -------------------- CONSTRÓI A APLICAÇÃO --------------------
 var app = builder.Build(); // Cria a aplicação web com todas as configurações que definimos
 
-// No pipeline
+// -------------------- CONFIGURAÇÃO DE MIDDLEWARE --------------------
+
+// Middleware de CORS (libera acesso de qualquer origem, pode restringir se quiser)
 app.UseCors(policy => policy
     .AllowAnyOrigin()
     .AllowAnyMethod()
     .AllowAnyHeader());
 
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseAuthentication(); // Middleware de autenticação
+app.UseAuthorization(); // Middleware de autorização
 
 /*
     IsDevelopment(): Verifica se estamos em ambiente de desenvolvimento
